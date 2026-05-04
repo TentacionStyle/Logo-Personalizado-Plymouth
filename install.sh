@@ -62,6 +62,13 @@ if [ "$DISTRO" == "arch" ]; then
     mkinitcpio -p linux
     grub-mkconfig -o /boot/grub/grub.cfg
 else
+    echo "--- Optimizando drivers de video para hardware físico ---"
+    # Añadimos drivers comunes al archivo de módulos para asegurar el arranque visual
+    for module in i915 amdgpu nvidia nvidia_drm fbcon; do
+        if ! grep -q "$module" /etc/initramfs-tools/modules; then
+            echo "$module" >> /etc/initramfs-tools/modules
+        fi
+    done
     update-initramfs -u
     update-grub
 fi
