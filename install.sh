@@ -51,9 +51,18 @@ mkdir -p "$TARGET_DIR"
 cp -rf Logo-Personalizado-Plymouth/* "$TARGET_DIR/"
 
 # 5. Aplicar el tema
-plymouth-set-default-theme -R logo-personalizado
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+    plymouth-set-default-theme -R logo-personalizado
+else
+    update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth /usr/share/plymouth/themes/logo-personalizado/logo-personalizado.plymouth 100
+    update-alternatives --set default.plymouth /usr/share/plymouth/themes/logo-personalizado/logo-personalizado.plymouth
+    update-initramfs -u
+fi
 
-# 6. Configuración de arranque
+# 6. Configuración de arranque (Silent Boot y Drivers)
+GRUB_PARAMS="quiet splash loglevel=3 rd.systemd.show_status=auto rd.udev.log_priority=3 vt.global_cursor_default=0"
+sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\".*\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$GRUB_PARAMS\"/" /etc/default/grub
+
 if [ "$DISTRO" == "arch" ]; then
     sed -i 's/^MODULES=(/MODULES=(hv_fb /' /etc/mkinitcpio.conf
     if ! grep -q "plymouth" /etc/mkinitcpio.conf; then
@@ -62,8 +71,7 @@ if [ "$DISTRO" == "arch" ]; then
     mkinitcpio -p linux
     grub-mkconfig -o /boot/grub/grub.cfg
 else
-    echo "--- Optimizando drivers de video para hardware físico ---"
-    # Añadimos drivers comunes al archivo de módulos para asegurar el arranque visual
+    echo "--- Optimizando drivers de video ---"
     for module in i915 amdgpu nvidia nvidia_drm fbcon; do
         if ! grep -q "$module" /etc/initramfs-tools/modules; then
             echo "$module" >> /etc/initramfs-tools/modules
@@ -74,7 +82,7 @@ else
 fi
 
 # 7. Finalización
-echo -e "\n${GREEN}[✔] ¡Listo!${NC}"
-echo -en "${CYAN}¿Reiniciar? (s/n): ${NC}"
+echo -e "\n${GREEN}[✔] ¡LobeOS Personalizado con éxito!${NC}"
+echo -en "${CYAN}¿Deseas reiniciar para ver los cambios? (s/n): ${NC}"
 read -r respuesta
 [[ "$respuesta" =~ ^[Ss]$ ]] && reboot
