@@ -1,39 +1,37 @@
-# -------------------------------------------------------------------------
-# Configuración del Logo y Fondo
-# -------------------------------------------------------------------------
+# --- Configuración del Logo y Fondo ---
 logo_image = Image("logo.png");
 logo_sprite = Sprite(logo_image);
 
-# Centrar el logo
 logo_x = Window.GetWidth() / 2 - logo_image.GetWidth() / 2;
 logo_y = Window.GetHeight() / 2 - logo_image.GetHeight() / 2;
 logo_sprite.SetPosition(logo_x, logo_y, 1);
 
-# Fondo negro
 Window.SetBackgroundTopColor(0, 0, 0);
 Window.SetBackgroundBottomColor(0, 0, 0);
 
-# -------------------------------------------------------------------------
-# Configuración de la Barra de Carga (Estilo Apple)
-# -------------------------------------------------------------------------
+# --- Configuración de la Barra de Carga ---
 if (Plymouth.GetMode() == "boot") {
     progress_box.image = Image("progress_box.png");
     progress_box.sprite = Sprite(progress_box.image);
 
     progress_box.x = Window.GetWidth() / 2 - progress_box.image.GetWidth() / 2;
-    progress_box.y = logo_y + logo_image.GetHeight() + 40; 
-    progress_box.sprite.SetPosition(progress_box.x, progress_box.y, 0);
+    progress_box.y = logo_y + logo_image.GetHeight() + 40;
+    progress_box.sprite.SetPosition(progress_box.x, progress_box.y, 10);
 
     progress_bar.original_image = Image("progress_bar.png");
     progress_bar.sprite = Sprite();
     
     progress_bar.x = progress_box.x + (progress_box.image.GetWidth() - progress_bar.original_image.GetWidth()) / 2;
     progress_bar.y = progress_box.y + (progress_box.image.GetHeight() - progress_bar.original_image.GetHeight()) / 2;
-    progress_bar.sprite.SetPosition(progress_bar.x, progress_bar.y, 2);
+    progress_bar.sprite.SetPosition(progress_bar.x, progress_bar.y, 11);
 
     fun progress_callback (duration, progress) {
-        if (progress > 0) {
+        # Evitar errores si el progreso es nulo o muy pequeño
+        if (progress > 0.01) {
             new_width = progress_bar.original_image.GetWidth() * progress;
+            # Asegurar que el ancho sea al menos 1 píxel
+            if (new_width < 1) new_width = 1;
+            
             progress_bar.image = progress_bar.original_image.Scale(new_width, progress_bar.original_image.GetHeight());
             progress_bar.sprite.SetImage(progress_bar.image);
         }
@@ -42,6 +40,6 @@ if (Plymouth.GetMode() == "boot") {
 }
 
 fun quit_callback () {
-    logo_sprite.SetOpacity (1);
+    logo_sprite.SetOpacity(1);
 }
 Plymouth.SetQuitFunction(quit_callback);
