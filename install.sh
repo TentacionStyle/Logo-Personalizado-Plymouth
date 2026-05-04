@@ -76,7 +76,7 @@ fi
 chmod -R 755 "$TARGET_DIR"
 
 # 6. Aplicar el tema
-echo -e "${CYAN}[*] Aplicando tema LobeOS...${NC}"
+echo -e "${CYAN}[*] Aplicando tema...${NC}"
 if command -v plymouth-set-default-theme >/dev/null 2>&1; then
     plymouth-set-default-theme -R logo-personalizado
 else
@@ -114,15 +114,8 @@ fi
 echo -e "\n${GREEN}[✔] Instalación completada.${NC}"
 read -p "¿Deseas previsualizar el tema ahora mismo sin reiniciar? (s/n): " previsualizar
 if [[ "$previsualizar" =~ ^[Ss]$ ]]; then
-    echo -e "${CYAN}[*] Iniciando previsualización (durará 8 segundos)...${NC}"
-    # Ejecutar demonio, mostrar splash, simular carga y cerrar
-    plymouthd
-    plymouth --show-splash
-    for i in {1..8}; do
-        plymouth --update=test$i
-        sleep 1
-    done
-    plymouth quit
+    echo -e "${CYAN}[*] Iniciando previsualización...${NC}"
+    sudo plymouthd; sudo plymouth --show-splash; sleep 5; sudo plymouth quit
 fi
 
 # 9. Reinicio
