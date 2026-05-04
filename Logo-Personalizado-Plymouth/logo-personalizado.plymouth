@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Mi Logo Personalizado
+Description=Logo personalizado para arranque silencioso
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/logo-personalizado
+ScriptFile=/usr/share/plymouth/themes/logo-personalizado/logo-personalizado.script

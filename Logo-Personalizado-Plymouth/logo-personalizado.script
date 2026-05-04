@@ -1,0 +1,13 @@
+# Cargar la imagen (asegúrate de que el archivo existe en la carpeta)
+logo_image = Image("logo.png");
+
+# Crear el objeto visual
+logo_sprite = Sprite(logo_image);
+
+# Centrar
+logo_sprite.SetX(Window.GetWidth()  / 2 - logo_image.GetWidth()  / 2);
+logo_sprite.SetY(Window.GetHeight() / 2 - logo_image.GetHeight() / 2);
+
+# Fondo negro
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
