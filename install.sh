@@ -32,7 +32,18 @@ else
     exit 1
 fi
 
-# 3. Instalación de dependencias
+# 3. Comprobación de imagen existente
+LOCAL_LOGO="Logo-Personalizado-Plymouth/logo.png"
+if [ -f "$LOCAL_LOGO" ]; then
+    echo -e "${YELLOW}[?] Se ha detectado una imagen 'logo.png' en la carpeta.${NC}"
+    read -p "¿Deseas usar esta imagen o prefieres mantener la que ya esté instalada en el sistema? (u: usar local / m: mantener sistema): " opt_img
+    if [[ "$opt_img" != "u" && "$opt_img" != "U" ]]; then
+        echo -e "${CYAN}[*] Se mantendrá la imagen actual del sistema.${NC}"
+        SKIP_COPY_IMG=true
+    fi
+fi
+
+# 4. Instalación de dependencias
 echo -e "${CYAN}[*] Instalando paquetes necesarios...${NC}"
 case $DISTRO in
     arch)
@@ -48,14 +59,24 @@ case $DISTRO in
         ;;
 esac
 
-# 4. Copiar carpeta del tema
-echo -e "${CYAN}[*] Copiando archivos del tema LobeOS...${NC}"
+# 5. Copiar carpeta del tema
 TARGET_DIR="/usr/share/plymouth/themes/logo-personalizado"
+echo -e "${CYAN}[*] Configurando archivos en $TARGET_DIR...${NC}"
 mkdir -p "$TARGET_DIR"
-cp -rf Logo-Personalizado-Plymouth/* "$TARGET_DIR/"
 
-# 5. Aplicar el tema y Configurar Framebuffer
-echo -e "${CYAN}[*] Configurando tema predeterminado...${NC}"
+if [ "$SKIP_COPY_IMG" = true ]; then
+    # Copiar todo menos el logo
+    cp -rf Logo-Personalizado-Plymouth/logo-personalizado.plymouth "$TARGET_DIR/"
+    cp -rf Logo-Personalizado-Plymouth/logo-personalizado.script "$TARGET_DIR/"
+    cp -rf Logo-Personalizado-Plymouth/progress_*.png "$TARGET_DIR/"
+else
+    cp -rf Logo-Personalizado-Plymouth/* "$TARGET_DIR/"
+fi
+
+chmod -R 755 "$TARGET_DIR"
+
+# 6. Aplicar el tema
+echo -e "${CYAN}[*] Aplicando tema LobeOS...${NC}"
 if command -v plymouth-set-default-theme >/dev/null 2>&1; then
     plymouth-set-default-theme -R logo-personalizado
 else
@@ -63,28 +84,24 @@ else
     update-alternatives --set default.plymouth "$TARGET_DIR/logo-personalizado.plymouth"
 fi
 
-# Forzar Framebuffer en Debian/Mint/Ubuntu para asegurar visualización temprana
-if [ "$DISTRO" != "arch" ]; then
-    echo "FRAMEBUFFER=y" > /etc/initramfs-tools/conf.d/splash
-fi
-
-# 6. Configuración de arranque (Silent Boot y Early KMS)
-echo -e "${CYAN}[*] Configurando GRUB y Drivers de video...${NC}"
+# 7. Configuración de arranque y Drivers
+echo -e "${CYAN}[*] Optimizando GRUB y drivers de video...${NC}"
 GRUB_PARAMS="quiet splash loglevel=3 rd.systemd.show_status=auto rd.udev.log_priority=3 vt.global_cursor_default=0"
 sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\".*\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$GRUB_PARAMS\"/" /etc/default/grub
 
+# Forzar resolución para evitar el logo de Lenovo/Mint
+sed -i 's/^#GRUB_GFXMODE=.*/GRUB_GFXMODE=1024x768x32/' /etc/default/grub
+if ! grep -q "GRUB_GFXPAYLOAD_LINUX=keep" /etc/default/grub; then
+    echo "GRUB_GFXPAYLOAD_LINUX=keep" >> /etc/default/grub
+fi
+
 if [ "$DISTRO" == "arch" ]; then
-    # Configuración Arch: MKINITCPIO
-    sed -i 's/^MODULES=(/MODULES=(i915 amdgpu nvidia nvidia_modeset nvidia_uvm nvidia_drm hv_fb virtio_gpu /' /etc/mkinitcpio.conf
-    if ! grep -q "plymouth" /etc/mkinitcpio.conf; then
-        sed -i 's/HOOKS=(base udev/HOOKS=(base udev plymouth/' /etc/mkinitcpio.conf
-    fi
+    sed -i 's/^MODULES=(/MODULES=(i915 amdgpu nvidia nvidia_modeset nvidia_uvm nvidia_drm fbcon /' /etc/mkinitcpio.conf
     mkinitcpio -p linux
     grub-mkconfig -o /boot/grub/grub.cfg
 else
-    # Configuración Mint/Ubuntu: INITRAMFS
-    echo "--- Optimizando drivers para Hardware Físico y VM ---"
-    for module in i915 amdgpu nvidia nvidia_modeset nvidia_uvm nvidia_drm fbcon hv_fb virtio_gpu; do
+    echo "FRAMEBUFFER=y" > /etc/initramfs-tools/conf.d/splash
+    for module in i915 amdgpu nvidia nvidia_modeset nvidia_uvm nvidia_drm fbcon; do
         if ! grep -q "$module" /etc/initramfs-tools/modules; then
             echo "$module" >> /etc/initramfs-tools/modules
         fi
@@ -93,9 +110,22 @@ else
     update-grub
 fi
 
-# 7. Finalización
-echo -e "\n${GREEN}[✔] ¡LobeOS Personalizado con éxito!${NC}"
-echo -e "${CYAN}[i] Se han configurado los drivers i915, AMD y NVIDIA para carga temprana.${NC}"
-echo -en "${CYAN}¿Deseas reiniciar ahora para ver los cambios? (s/n): ${NC}"
+# 8. Previsualización
+echo -e "\n${GREEN}[✔] Instalación completada.${NC}"
+read -p "¿Deseas previsualizar el tema ahora mismo sin reiniciar? (s/n): " previsualizar
+if [[ "$previsualizar" =~ ^[Ss]$ ]]; then
+    echo -e "${CYAN}[*] Iniciando previsualización (durará 8 segundos)...${NC}"
+    # Ejecutar demonio, mostrar splash, simular carga y cerrar
+    plymouthd
+    plymouth --show-splash
+    for i in {1..8}; do
+        plymouth --update=test$i
+        sleep 1
+    done
+    plymouth quit
+fi
+
+# 9. Reinicio
+echo -en "${YELLOW}¿Deseas reiniciar el equipo ahora? (s/n): ${NC}"
 read -r respuesta
 [[ "$respuesta" =~ ^[Ss]$ ]] && reboot
