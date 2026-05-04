@@ -14,4 +14,4 @@ El script configura un inicio silencioso con tu logo personalizado centrado en u
 Puedes instalar este tema automáticamente ejecutando el siguiente comando en tu terminal. El script detectará tu sistema operativo, instalará las dependencias necesarias, aplicará el tema y configurará el GRUB por ti.
 
 ```bash
-curl -sSL [https://raw.githubusercontent.com/TentacionStyle/Logo-Personalizado-Plymouth/main/install.sh](https://raw.githubusercontent.com/TentacionStyle/Logo-Personalizado-Plymouth/main/install.sh) | sudo bash
+git clone https://github.com/TentacionStyle/Logo-Personalizado-Plymouth.git && cd Logo-Personalizado-Plymouth && chmod +x install.sh && sudo ./install.sh
